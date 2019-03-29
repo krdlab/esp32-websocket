@@ -27,6 +27,27 @@ public:
 
 struct ParsedResponse;
 
+enum class WebSocketConnectResult
+{
+  Success,
+  ConnectFailure,
+  HandshakeFailure,
+};
+enum class WebSocketReadResult
+{
+  Success,
+  NotAvailable,
+  InvalidFrame,
+  ReadTimeout,
+  NotSupported,
+};
+enum class WebSocketWriteResult
+{
+  Success,
+  NotAvailable,
+  NotSupported,
+};
+
 
 class WebSocketClient
 {
@@ -44,15 +65,15 @@ public:
     close();
   }
 
-  bool connect(const char* host, const uint16_t port, const char* path, const char* protocol = NULL);
+  WebSocketConnectResult connect(const char* host, const uint16_t port, const char* path, const char* protocol = NULL);
   void close();
-  bool write(Stream& data, const uint8_t opcode);
-  bool read(Stream& data, uint8_t& opcode);
+  WebSocketWriteResult write(Stream& data, const uint8_t opcode);
+  WebSocketReadResult read(Stream& data, uint8_t& opcode);
 
   bool connected() const { return client.connected(); }
   int available() { return client.available(); }
   void waitForAvailable() { waitForResponse(); }
-  void waitForResponse();
+  void waitForResponse(); // TODO: timeout
 
 private:
   bool handshake(const String& host, const String& path, const String& protocol);

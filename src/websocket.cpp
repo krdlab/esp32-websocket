@@ -62,23 +62,23 @@ static void generateMask(uint8_t (&mask)[4])
 }
 
 
-bool WebSocketClient::connect(const char* host, const uint16_t port, const char* path, const char* protocol)
+WebSocketConnectResult WebSocketClient::connect(const char* host, const uint16_t port, const char* path, const char* protocol)
 {
   if (client.connect(host, port)) {
     ESP_LOGD(LOG_TAG, "client.connect: connected");
     if (handshake(host, path, protocol == NULL ? "" : protocol)) {
       ESP_LOGD(LOG_TAG, "handshake: completed");
-      return true;
+      return WebSocketConnectResult::Success;
     } else {
       ESP_LOGD(LOG_TAG, "handshake: failed");
       if (client.connected()) {
         client.stop();
       }
-      return false;
+      return WebSocketConnectResult::HandshakeFailure;
     }
   } else{
     ESP_LOGD(LOG_TAG, "client.connect: failed");
-    return false;
+    return WebSocketConnectResult::ConnectFailure;
   }
 }
 
@@ -206,17 +206,17 @@ bool WebSocketClient::parseResponse(ParsedResponse& parsed) // TODO: use HTTPCli
   return parsed.isValid();
 }
 
-bool WebSocketClient::read(Stream& data, uint8_t& opcode)
+WebSocketReadResult WebSocketClient::read(Stream& data, uint8_t& opcode)
 {
   if (!client.available()) {
     ESP_LOGD(LOG_TAG, "read: !client.available");
-    return false;
+    return WebSocketReadResult::NotAvailable;
   }
 
   const uint8_t frameType = readByte();
   if (!(frameType & WS_FIN)) { // if FIN = 0
     ESP_LOGD(LOG_TAG, "read: !(frameType & WS_FIN)");
-    return false; // TODO: multi frames
+    return WebSocketReadResult::NotSupported; // TODO: multi frames
   }
 
   bool hasMask;
@@ -235,13 +235,13 @@ bool WebSocketClient::read(Stream& data, uint8_t& opcode)
     length |= readByte();
   } else if (length == WS_SIZE64) {
     ESP_LOGD(LOG_TAG, "read: length == WS_SIZE64");
-    return false; // TODO: too large for ESP32
+    return WebSocketReadResult::NotSupported; // TODO: too large for ESP32
   }
 
   uint8_t mask[4];
   if (hasMask && !readMask(mask)) {
     ESP_LOGD(LOG_TAG, "read: hasMask && !readMask(mask)");
-    return false;
+    return WebSocketReadResult::InvalidFrame;
   }
 
   opcode = frameType & ~WS_FIN;
@@ -253,7 +253,7 @@ bool WebSocketClient::read(Stream& data, uint8_t& opcode)
     }
     data.write(b);
   }
-  return true;
+  return WebSocketReadResult::Success;
 }
 
 bool WebSocketClient::readMask(uint8_t (&mask)[4])
@@ -268,7 +268,7 @@ bool WebSocketClient::readMask(uint8_t (&mask)[4])
   return true;
 }
 
-int WebSocketClient::readByte(const bool wait)  // TODO: Expect Error Int
+int WebSocketClient::readByte(const bool wait)  // TODO: expected<int, ReadError>
 {
   while (wait && !client.available()) {
     delay(10);
@@ -335,10 +335,10 @@ public:
   }
 };
 
-bool WebSocketClient::write(Stream& data, const uint8_t opcode)
+WebSocketWriteResult WebSocketClient::write(Stream& data, const uint8_t opcode)
 {
   if (!client.connected()) {
-    return false;
+    return WebSocketWriteResult::NotAvailable;
   }
 
   ClientTxBuffer buffer(client);
@@ -352,7 +352,7 @@ bool WebSocketClient::write(Stream& data, const uint8_t opcode)
     buffer.write((uint8_t)(length >> 8));
     buffer.write((uint8_t)(length & 0xFF));
   } else {
-    return false; // no support
+    return WebSocketWriteResult::NotSupported;
   }
 
   uint8_t mask[4];
@@ -363,5 +363,5 @@ bool WebSocketClient::write(Stream& data, const uint8_t opcode)
     buffer.write(data.read() ^ mask[i % 4]);
   }
   buffer.flush();
-  return true;
+  return WebSocketWriteResult::Success;
 }

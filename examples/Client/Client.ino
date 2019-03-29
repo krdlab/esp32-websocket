@@ -21,10 +21,11 @@ void setup()
   beginSerial();
   connectWiFi(ssid, password);
 
-  if (client.connect(host, port, path)) {
+  WebSocketConnectResult res;
+  if ((res = client.connect(host, port, path)) == WebSocketConnectResult::Success) {
     Serial.printf("Client connected to %s:%d.\n", host, port);
   } else {
-    Serial.printf("Client failed connecting to %s:%d.\n", host, port);
+    Serial.printf("Client failed connecting to %s:%d (reason = %d)\n", host, port, res);
   }
 }
 
@@ -64,7 +65,7 @@ void demo(WebSocketClient& client)
   while (client.connected()) {
     Payload text;
     text.print("あいうえお");
-    if (!client.write(text, WS_OPCODE_TEXT)) {
+    if (client.write(text, WS_OPCODE_TEXT) != WebSocketWriteResult::Success) {
       Serial.println("Failed to write text data");
       return;
     }
@@ -73,7 +74,7 @@ void demo(WebSocketClient& client)
     binary.write(0x01);
     binary.write(0x02);
     binary.write(0x34);
-    if (!client.write(binary, WS_OPCODE_BINARY)) {
+    if (client.write(binary, WS_OPCODE_BINARY) != WebSocketWriteResult::Success) {
       Serial.println("Failed to write binary data");
       return;
     }
@@ -90,7 +91,7 @@ bool readAndPrint()
 {
   Payload recv;
   uint8_t opcode;
-  if (!client.read(recv, opcode)) {
+  if (client.read(recv, opcode) != WebSocketReadResult::Success) {
     return false;
   }
   print(opcode, recv);
