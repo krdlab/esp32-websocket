@@ -1,0 +1,53 @@
+name:                testing-server
+version:             0.1.0.0
+github:              "krdlab/esp32-websocket"
+license:             BSD3
+author:              "Sho Kuroda"
+maintainer:          "krdlab@gmail.com"
+copyright:           "(c) 2019 Sho Kuroda"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/krdlab/esp32-websocket#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- bytestring
+- text
+- websockets
+
+library:
+  source-dirs: src
+  default-extensions:
+  - OverloadedStrings
+
+executables:
+  testing-server-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - testing-server
+
+tests:
+  testing-server-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - testing-server
