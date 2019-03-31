@@ -14,7 +14,7 @@ main = WS.runServer "0.0.0.0" 3000 app
 app :: WS.ServerApp
 app pending = do
     conn <- WS.acceptRequest pending
-    WS.forkPingThread conn 30
+    WS.forkPingThread conn 10
     echo conn
 
 echo :: WS.Connection -> IO ()

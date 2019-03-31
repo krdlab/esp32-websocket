@@ -345,6 +345,7 @@ WebSocketWriteResult WebSocketClient::write(Stream& data, const uint8_t opcode)
   buffer.write(opcode | WS_FIN);
 
   const size_t length = data.available();
+  // Mask (1 bit): All frames sent from client to server have this bit set to 1.
   if (length < 126) {
     buffer.write((uint8_t) length | WS_MASK);
   } else if (length < (uint16_t)(-1 & 0xFFFF)) {
@@ -364,4 +365,26 @@ WebSocketWriteResult WebSocketClient::write(Stream& data, const uint8_t opcode)
   }
   buffer.flush();
   return WebSocketWriteResult::Success;
+}
+
+WebSocketWriteResult WebSocketClient::ping()
+{
+  Payload empty;
+  return ping(empty);
+}
+
+WebSocketWriteResult WebSocketClient::ping(Stream& data)
+{
+  return write(data, WS_OPCODE_PING);
+}
+
+WebSocketWriteResult WebSocketClient::pong()
+{
+  Payload empty;
+  return pong(empty);
+}
+
+WebSocketWriteResult WebSocketClient::pong(Stream& data)
+{
+  return write(data, WS_OPCODE_PONG);
 }

@@ -33,10 +33,11 @@ void loop()
 {
   if (client.connected()) {
     demo(client);
+    delay(3000);
   } else {
     Serial.println("Client disconnected.");
+    while (true);
   }
-  delay(1000);
 }
 
 void beginSerial()
@@ -81,24 +82,24 @@ void demo(WebSocketClient& client)
 
     client.waitForResponse();
 
-    while (readAndPrint());
+    while (handleResponse(client));
 
     delay(3000);
   }
 }
 
-bool readAndPrint()
+bool handleResponse(WebSocketClient& client)
 {
   Payload recv;
   uint8_t opcode;
   if (client.read(recv, opcode) != WebSocketReadResult::Success) {
     return false;
   }
-  print(opcode, recv);
+  doAction(client, opcode, recv);
   return true;
 }
 
-void print(const uint8_t opcode, Payload& p)
+void doAction(WebSocketClient& clinet, const uint8_t opcode, Payload& p)
 {
   switch (opcode) {
   case WS_OPCODE_TEXT:
@@ -106,6 +107,19 @@ void print(const uint8_t opcode, Payload& p)
     break;
   case WS_OPCODE_BINARY:
     printBinary(p);
+    break;
+  case WS_OPCODE_PING:
+    if (0 < p.available()) {
+      const size_t size = p.available();
+      uint8_t tmp[size];
+      p.readBytes(tmp, size);
+      printBytes(opcode, tmp, size);
+      Payload res(tmp, p.available());
+      client.pong(res);
+    } else {
+      printAny(opcode, p);
+      client.pong();
+    }
     break;
   default:
     printAny(opcode, p);
@@ -128,6 +142,15 @@ void printAny(const uint8_t opcode, Payload& p)
   Serial.printf("opcode %2x: ", opcode);
   while (p.available()) {
     Serial.printf("%02x ", p.read());
+  }
+  Serial.println();
+}
+
+void printBytes(const uint8_t opcode, const uint8_t* data, const size_t size)
+{
+  Serial.printf("opcode %2x: ", opcode);
+  for (int i = 0; i < size; ++i) {
+    Serial.printf("%02x ", data[i]);
   }
   Serial.println();
 }

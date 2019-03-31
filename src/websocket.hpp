@@ -22,6 +22,8 @@
 class Payload : public StreamString // FIXME: NOT String
 {
 public:
+  Payload() {}
+  Payload(const uint8_t* data, const size_t size) { write(data, size); }
   void purge() { invalidate(); }
 };
 
@@ -69,6 +71,11 @@ public:
   void close();
   WebSocketWriteResult write(Stream& data, const uint8_t opcode);
   WebSocketReadResult read(Stream& data, uint8_t& opcode);
+
+  WebSocketWriteResult ping();
+  WebSocketWriteResult ping(Stream& data);
+  WebSocketWriteResult pong();
+  WebSocketWriteResult pong(Stream& data);
 
   bool connected() const { return client.connected(); }
   int available() { return client.available(); }
